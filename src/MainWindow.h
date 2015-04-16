@@ -3,6 +3,7 @@
 
 #include "sqltextedit.h"
 #include "sqlitedb.h"
+#include "SqlUiLexer.h"
 
 #include <QMainWindow>
 #include <QStandardItemModel>
@@ -90,8 +91,7 @@ private:
 
     DBBrowserDB db;
 
-    QStandardItemModel completerModelTables;
-    SqlTextEdit::FieldCompleterModelMap completerModelsFields;
+    SqlUiLexer sqlLexer;
 
     QNetworkAccessManager* m_NetworkManager;
 
@@ -103,6 +103,7 @@ private:
     void addToRecentFilesMenu(const QString& filename);
     void activateFields(bool enable = true);
     void loadExtensionsFromSettings();
+    void setupSyntaxHighlightingFormat(const QString& settings_name, int style);
 
 protected:
     void closeEvent(QCloseEvent *);

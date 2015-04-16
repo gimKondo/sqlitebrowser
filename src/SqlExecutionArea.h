@@ -5,9 +5,12 @@
 
 #include <QWidget>
 
+class QsciScintilla;
+class SqlUiLexer;
 class SqliteTableModel;
 class DBBrowserDB;
 class QMenu;
+class QTextEdit;
 
 namespace Ui {
 class SqlExecutionArea;
@@ -18,7 +21,7 @@ class SqlExecutionArea : public QWidget
     Q_OBJECT
 
 public:
-    explicit SqlExecutionArea(QWidget* parent = 0, DBBrowserDB* _db = 0);
+    explicit SqlExecutionArea(QWidget* parent, DBBrowserDB* _db, SqlUiLexer* lexer);
     ~SqlExecutionArea();
 
     QString getSql() const;
@@ -29,10 +32,9 @@ public:
 
     SqliteTableModel* getModel() { return model; }
     QTextEdit* getResultView();
-    SqlTextEdit* getEditor();
+    QsciScintilla* getEditor();
 
 public slots:
-    virtual void setTableNames(const QStringList& tables);
     virtual void finishExecution(const QString& result);
     virtual void enableSaveButton(bool enable);
     virtual void saveAsCsv();
@@ -40,10 +42,10 @@ public slots:
 
 private:
     DBBrowserDB* db;
-    Ui::SqlExecutionArea* ui;
     SqliteTableModel* model;
     QMenu* menuPopupSave;
     QString sqlFileName;
+    Ui::SqlExecutionArea* ui;
 };
 
 #endif

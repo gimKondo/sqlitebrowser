@@ -2,17 +2,17 @@
 #include "ui_SqlExecutionArea.h"
 #include "sqltextedit.h"
 #include "ExtendedTableWidget.h"
-#include "SQLiteSyntaxHighlighter.h"
 #include "sqlitetablemodel.h"
 #include "sqlitedb.h"
 #include "PreferencesDialog.h"
 #include "ExportCsvDialog.h"
+#include "SqlUiLexer.h"
 
 #include <QMenu>
 #include <QInputDialog>
 #include <QMessageBox>
 
-SqlExecutionArea::SqlExecutionArea(QWidget* parent, DBBrowserDB* _db) :
+SqlExecutionArea::SqlExecutionArea(QWidget* parent, DBBrowserDB* _db, SqlUiLexer* lexer) :
     QWidget(parent),
     db(_db),
     ui(new Ui::SqlExecutionArea)
@@ -25,6 +25,9 @@ SqlExecutionArea::SqlExecutionArea(QWidget* parent, DBBrowserDB* _db) :
     logfont.setStyleHint(QFont::TypeWriter);
     logfont.setPointSize(PreferencesDialog::getSettingsValue("log", "fontsize").toInt());
     ui->editErrors->setFont(logfont);
+
+    // Set up syntax highlighting
+    ui->editEditor->setLexer(lexer);
 
     // Create model
     model = new SqliteTableModel(this, db, PreferencesDialog::getSettingsValue("db", "prefetchsize").toInt());
@@ -42,19 +45,14 @@ SqlExecutionArea::~SqlExecutionArea()
     delete ui;
 }
 
-void SqlExecutionArea::setTableNames(const QStringList& tables)
-{
-    ui->editEditor->syntaxHighlighter()->setTableNames(tables);
-}
-
 QString SqlExecutionArea::getSql() const
 {
-    return ui->editEditor->toPlainText().trimmed();
+    return ui->editEditor->text();
 }
 
 QString SqlExecutionArea::getSelectedSql() const
 {
-    return ui->editEditor->textCursor().selectedText().trimmed().replace(QChar(0x2029), '\n');
+    return ui->editEditor->selectedText().trimmed().replace(QChar(0x2029), '\n');
 }
 
 void SqlExecutionArea::finishExecution(const QString& result)
@@ -70,7 +68,7 @@ void SqlExecutionArea::finishExecution(const QString& result)
     }
 }
 
-SqlTextEdit* SqlExecutionArea::getEditor()
+QsciScintilla* SqlExecutionArea::getEditor()
 {
     return ui->editEditor;
 }

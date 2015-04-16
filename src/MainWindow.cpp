@@ -8,8 +8,8 @@
 #include "ExportCsvDialog.h"
 #include "PreferencesDialog.h"
 #include "EditDialog.h"
-#include "SQLiteSyntaxHighlighter.h"
-#include "sqltextedit.h"
+#include "Qsci/qsciscintilla.h"
+#include "Qsci/qsciapis.h"
 #include "sqlitetablemodel.h"
 #include "SqlExecutionArea.h"
 #include "VacuumDialog.h"
@@ -42,6 +42,7 @@
 #include <QXmlStreamWriter>
 #include <QInputDialog>
 #include <QProgressDialog>
+#include <QTextEdit>
 
 
 MainWindow::MainWindow(QWidget* parent)
@@ -191,17 +192,6 @@ void MainWindow::init()
 #endif
 }
 
-void MainWindow::clearCompleterModelsFields()
-{
-    for(SqlTextEdit::FieldCompleterModelMap::iterator it = completerModelsFields.begin();
-        it != completerModelsFields.end();
-        ++it)
-    {
-        delete *it;
-    }
-    completerModelsFields.clear();
-}
-
 bool MainWindow::fileOpen(const QString& fileName, bool dontAddToRecentFiles)
 {
     bool retval = false;
@@ -269,9 +259,6 @@ void MainWindow::fileNew()
 
 void MainWindow::populateStructure()
 {
-    completerModelTables.clear();
-    clearCompleterModelsFields();
-
     // Refresh the structure tab
     db.updateSchema();
     dbStructureModel->reloadData(&db);
@@ -281,14 +268,30 @@ void MainWindow::populateStructure()
     if(!db.isOpen())
         return;
 
+    // Set up syntax highlighting
     QStringList tblnames = db.getBrowsableObjectNames();
-    ui->editLogUser->syntaxHighlighter()->setTableNames(tblnames);
-    ui->editLogApplication->syntaxHighlighter()->setTableNames(tblnames);
+    sqlLexer.setTableNames(tblnames);
+
+    sqlLexer.setDefaultColor(Qt::black);
+    QFont defaultfont("Monospace");
+    defaultfont.setStyleHint(QFont::TypeWriter);
+    defaultfont.setPointSize(PreferencesDialog::getSettingsValue("editor", "fontsize").toInt());
+    sqlLexer.setDefaultFont(defaultfont);
+    setupSyntaxHighlightingFormat("comment", QsciLexerSQL::Comment);
+    setupSyntaxHighlightingFormat("comment", QsciLexerSQL::CommentLine);
+    setupSyntaxHighlightingFormat("comment", QsciLexerSQL::CommentDoc);
+    setupSyntaxHighlightingFormat("keyword", QsciLexerSQL::Keyword);
+    setupSyntaxHighlightingFormat("table", QsciLexerSQL::KeywordSet5);
+    setupSyntaxHighlightingFormat("function", QsciLexerSQL::KeywordSet6);
+    setupSyntaxHighlightingFormat("string", QsciLexerSQL::DoubleQuotedString);
+    setupSyntaxHighlightingFormat("string", QsciLexerSQL::SingleQuotedString);
+    setupSyntaxHighlightingFormat("identifier", QsciLexerSQL::Identifier);
+    setupSyntaxHighlightingFormat("identifier", QsciLexerSQL::QuotedIdentifier);
+
+    ui->editLogApplication->setLexer(&sqlLexer);
+    ui->editLogUser->setLexer(&sqlLexer);
 
     // setup models for sqltextedit autocomplete
-    completerModelTables.setRowCount(tblnames.count());
-    completerModelTables.setColumnCount(1);
-
     objectMap tab = db.getBrowsableObjects();
     int row = 0;
     for(objectMap::ConstIterator it=tab.begin(); it!=tab.end(); ++it, ++row)
@@ -296,7 +299,7 @@ void MainWindow::populateStructure()
         QString sName = it.value().getname();
         QStandardItem* item = new QStandardItem(sName);
         item->setIcon(QIcon(QString(":icons/%1").arg(it.value().gettype())));
-        completerModelTables.setItem(row, 0, item);
+        //completerModelTables.setItem(row, 0, item);
 
         // If it is a table add the field Nodes
         if((*it).gettype() == "table" || (*it).gettype() == "view")
@@ -313,16 +316,9 @@ void MainWindow::populateStructure()
                 fldItem->setIcon(QIcon(":/icons/field"));
                 tablefieldmodel->setItem(fldrow, 0, fldItem);
             }
-            completerModelsFields.insert(sName.toLower(), tablefieldmodel);
+            //completerModelsFields.insert(sName.toLower(), tablefieldmodel);
         }
 
-    }
-    for(int i=0; i < ui->tabSqlAreas->count(); ++i)
-    {
-        SqlExecutionArea* sqlarea = qobject_cast<SqlExecutionArea*>(ui->tabSqlAreas->widget(i));
-        sqlarea->setTableNames(tblnames);
-        sqlarea->getEditor()->setDefaultCompleterModel(&completerModelTables);
-        sqlarea->getEditor()->insertFieldCompleterModels(completerModelsFields);
     }
 
     // Resize SQL column to fit contents
@@ -462,7 +458,6 @@ void MainWindow::closeEvent( QCloseEvent* event )
         PreferencesDialog::setSettingsValue("MainWindow", "windowState", saveState());
         PreferencesDialog::setSettingsValue("SQLLogDock", "Log", ui->comboLogSubmittedBy->currentText());
         PreferencesDialog::setSettingsValue("PlotDock", "splitterSize", ui->splitterForPlot->saveState());
-        clearCompleterModelsFields();
         QMainWindow::closeEvent(event);
     } else {
         event->ignore();
@@ -590,7 +585,7 @@ void MainWindow::createTable()
         return;
     }
 
-    EditTableDialog dialog(&db, "", true, this);
+    EditTableDialog dialog(&db, &sqlLexer, "", true, this);
     if(dialog.exec())
     {
         populateStructure();
@@ -656,7 +651,7 @@ void MainWindow::editTable()
     }
     QString tableToEdit = ui->dbTreeWidget->model()->data(ui->dbTreeWidget->currentIndex().sibling(ui->dbTreeWidget->currentIndex().row(), 0)).toString();
 
-    EditTableDialog dialog(&db, tableToEdit, false, this);
+    EditTableDialog dialog(&db, &sqlLexer, tableToEdit, false, this);
     if(dialog.exec())
     {
         populateStructure();
@@ -722,7 +717,9 @@ void MainWindow::executeQuery()
     bool singleStep = false;
     if(sender()->objectName() == "actionSqlExecuteLine")
     {
-        query = sqlWidget->getEditor()->document()->toPlainText().mid(sqlWidget->getEditor()->textCursor().block().position());
+        int cursor_line, cursor_index;
+        sqlWidget->getEditor()->getCursorPosition(&cursor_line, &cursor_index);
+        query = sqlWidget->getEditor()->text().mid(cursor_index);
         singleStep = true;
     } else {
         // if a part of the query is selected, we will only execute this part
@@ -1218,10 +1215,10 @@ void MainWindow::logSql(const QString& sql, int msgtype)
 {
     if(msgtype == kLogMsg_User)
     {
-        ui->editLogUser->appendPlainText(sql);
+        ui->editLogUser->append(sql + "\n");
         ui->editLogUser->verticalScrollBar()->setValue(ui->editLogUser->verticalScrollBar()->maximum());
     } else {
-        ui->editLogApplication->appendPlainText(sql);
+        ui->editLogApplication->append(sql + "\n");
         ui->editLogApplication->verticalScrollBar()->setValue(ui->editLogApplication->verticalScrollBar()->maximum());
     }
 }
@@ -1246,10 +1243,7 @@ unsigned int MainWindow::openSqlTab(bool resetCounter)
         tabNumber = 0;
 
     // Create new tab, add it to the tab widget and select it
-    SqlExecutionArea* w = new SqlExecutionArea(this, &db);
-    w->setTableNames(db.getBrowsableObjectNames());
-    w->getEditor()->setDefaultCompleterModel(&completerModelTables);
-    w->getEditor()->insertFieldCompleterModels(completerModelsFields);
+    SqlExecutionArea* w = new SqlExecutionArea(this, &db, &sqlLexer);
     int index = ui->tabSqlAreas->addTab(w, QString("SQL %1").arg(++tabNumber));
     ui->tabSqlAreas->setCurrentIndex(index);
     w->getEditor()->setFocus();
@@ -1279,7 +1273,7 @@ void MainWindow::openSqlFile()
             index = openSqlTab();
 
         SqlExecutionArea* sqlarea = qobject_cast<SqlExecutionArea*>(ui->tabSqlAreas->widget(index));
-        sqlarea->getEditor()->setPlainText(f.readAll());
+        sqlarea->getEditor()->setText(f.readAll());
         sqlarea->setFileName(file);
         QFileInfo fileinfo(file);
         ui->tabSqlAreas->setTabText(index, fileinfo.fileName());
@@ -1372,10 +1366,8 @@ void MainWindow::reloadSettings()
 
         QFont font = sqlArea->getEditor()->font();
         font.setPointSize(edit_fontsize);
-        QFontMetrics fm(font);
-        int tabpixelwidth = fm.width(" ") * edit_tabsize;
         sqlArea->getEditor()->setFont(font);
-        sqlArea->getEditor()->setTabStopWidth(tabpixelwidth);
+        sqlArea->getEditor()->setTabWidth(edit_tabsize);
     }
 
     // Set font for SQL logs
@@ -1893,7 +1885,7 @@ bool MainWindow::loadProject(QString filename)
                             // SQL editor tab
                             unsigned int index = openSqlTab();
                             ui->tabSqlAreas->setTabText(index, xml.attributes().value("name").toString());
-                            qobject_cast<SqlExecutionArea*>(ui->tabSqlAreas->widget(index))->getEditor()->setPlainText(xml.readElementText());
+                            qobject_cast<SqlExecutionArea*>(ui->tabSqlAreas->widget(index))->getEditor()->setText(xml.readElementText());
                         } else if(xml.name() == "current_tab") {
                             // Currently selected tab
                             ui->tabSqlAreas->setCurrentIndex(xml.attributes().value("id").toString().toInt());
@@ -2087,4 +2079,16 @@ void MainWindow::editEncryption()
         }
     }
 #endif
+}
+
+void MainWindow::setupSyntaxHighlightingFormat(const QString& settings_name, int style)
+{
+    sqlLexer.setColor(QColor(PreferencesDialog::getSettingsValue("syntaxhighlighter", settings_name + "_colour").toString()), style);
+
+    QFont font("Monospace");
+    font.setPointSize(PreferencesDialog::getSettingsValue("editor", "fontsize").toInt());
+    font.setBold(PreferencesDialog::getSettingsValue("syntaxhighlighter", settings_name + "_bold").toBool());
+    font.setItalic(PreferencesDialog::getSettingsValue("syntaxhighlighter", settings_name + "_italic").toBool());
+    font.setUnderline(PreferencesDialog::getSettingsValue("syntaxhighlighter", settings_name + "_underline").toBool());
+    sqlLexer.setFont(font, style);
 }

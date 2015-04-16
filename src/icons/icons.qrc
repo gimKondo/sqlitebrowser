@@ -42,5 +42,8 @@
         <file alias="field_key">page_key.png</file>
         <file alias="encryption">key.png</file>
         <file alias="document_open">document-open.png</file>
+        <file alias="api_table">api_table.png</file>
+        <file alias="api_keyword">api_keyword.png</file>
+        <file alias="api_function">api_function.png</file>
     </qresource>
 </RCC>

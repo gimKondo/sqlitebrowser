@@ -1,8 +1,8 @@
 #include "EditTableDialog.h"
 #include "ui_EditTableDialog.h"
-#include "SQLiteSyntaxHighlighter.h"
 #include "sqlitetablemodel.h"
 #include "sqlitedb.h"
+#include "SqlUiLexer.h"
 
 #include <QMessageBox>
 #include <QPushButton>
@@ -10,7 +10,7 @@
 #include <QDateTime>
 #include <QKeyEvent>
 
-EditTableDialog::EditTableDialog(DBBrowserDB* db, const QString& tableName, bool createTable, QWidget* parent)
+EditTableDialog::EditTableDialog(DBBrowserDB* db, SqlUiLexer* lexer, const QString& tableName, bool createTable, QWidget* parent)
     : QDialog(parent),
       ui(new Ui::EditTableDialog),
       pdb(db),
@@ -21,10 +21,9 @@ EditTableDialog::EditTableDialog(DBBrowserDB* db, const QString& tableName, bool
 {
     // Create UI
     ui->setupUi(this);
+    ui->sqlTextEdit->setLexer(lexer);
     ui->widgetExtension->setVisible(false);
     connect(ui->treeWidget, SIGNAL(itemChanged(QTreeWidgetItem*,int)),this,SLOT(itemChanged(QTreeWidgetItem*,int)));
-
-    m_sqliteSyntaxHighlighter = new SQLiteSyntaxHighlighter(ui->sqlTextEdit->document());
 
     // Editing an existing table?
     if(m_bNewTable == false)
@@ -161,8 +160,7 @@ void EditTableDialog::reject()
 
 void EditTableDialog::updateSqlText()
 {
-    ui->sqlTextEdit->clear();
-    ui->sqlTextEdit->insertPlainText(m_table.sql());
+    ui->sqlTextEdit->setText(m_table.sql());
 }
 
 void EditTableDialog::checkInput()

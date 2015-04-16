@@ -6,8 +6,8 @@
 #include <QDialog>
 
 class DBBrowserDB;
-class SQLiteSyntaxHighlighter;
 class QTreeWidgetItem;
+class SqlUiLexer;
 
 namespace Ui {
 class EditTableDialog;
@@ -18,7 +18,7 @@ class EditTableDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit EditTableDialog(DBBrowserDB* pdb, const QString& tableName, bool createTable, QWidget* parent = 0);
+    explicit EditTableDialog(DBBrowserDB* pdb, SqlUiLexer* lexer, const QString& tableName, bool createTable, QWidget* parent = 0);
     ~EditTableDialog();
 
 protected:
@@ -63,7 +63,6 @@ private:
     sqlb::Table m_table;
     QStringList types;
     QStringList fields;
-    SQLiteSyntaxHighlighter* m_sqliteSyntaxHighlighter;
     bool m_bNewTable;
     QString m_sRestorePointName;
 };
