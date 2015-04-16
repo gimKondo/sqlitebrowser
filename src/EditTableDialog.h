@@ -7,7 +7,6 @@
 
 class DBBrowserDB;
 class QTreeWidgetItem;
-class SqlUiLexer;
 
 namespace Ui {
 class EditTableDialog;
@@ -18,7 +17,7 @@ class EditTableDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit EditTableDialog(DBBrowserDB* pdb, SqlUiLexer* lexer, const QString& tableName, bool createTable, QWidget* parent = 0);
+    explicit EditTableDialog(DBBrowserDB* pdb, const QString& tableName, bool createTable, QWidget* parent = 0);
     ~EditTableDialog();
 
 protected:

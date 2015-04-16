@@ -8,8 +8,6 @@
 #include "ExportCsvDialog.h"
 #include "PreferencesDialog.h"
 #include "EditDialog.h"
-#include "Qsci/qsciscintilla.h"
-#include "Qsci/qsciapis.h"
 #include "sqlitetablemodel.h"
 #include "SqlExecutionArea.h"
 #include "VacuumDialog.h"
@@ -18,6 +16,7 @@
 #include "sqlite.h"
 #include "CipherDialog.h"
 #include "ExportSqlDialog.h"
+#include "SqlUiLexer.h"
 
 #include <QFileDialog>
 #include <QFile>
@@ -43,7 +42,6 @@
 #include <QInputDialog>
 #include <QProgressDialog>
 #include <QTextEdit>
-
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent),
@@ -270,26 +268,7 @@ void MainWindow::populateStructure()
 
     // Set up syntax highlighting
     QStringList tblnames = db.getBrowsableObjectNames();
-    sqlLexer.setTableNames(tblnames);
-
-    sqlLexer.setDefaultColor(Qt::black);
-    QFont defaultfont("Monospace");
-    defaultfont.setStyleHint(QFont::TypeWriter);
-    defaultfont.setPointSize(PreferencesDialog::getSettingsValue("editor", "fontsize").toInt());
-    sqlLexer.setDefaultFont(defaultfont);
-    setupSyntaxHighlightingFormat("comment", QsciLexerSQL::Comment);
-    setupSyntaxHighlightingFormat("comment", QsciLexerSQL::CommentLine);
-    setupSyntaxHighlightingFormat("comment", QsciLexerSQL::CommentDoc);
-    setupSyntaxHighlightingFormat("keyword", QsciLexerSQL::Keyword);
-    setupSyntaxHighlightingFormat("table", QsciLexerSQL::KeywordSet5);
-    setupSyntaxHighlightingFormat("function", QsciLexerSQL::KeywordSet6);
-    setupSyntaxHighlightingFormat("string", QsciLexerSQL::DoubleQuotedString);
-    setupSyntaxHighlightingFormat("string", QsciLexerSQL::SingleQuotedString);
-    setupSyntaxHighlightingFormat("identifier", QsciLexerSQL::Identifier);
-    setupSyntaxHighlightingFormat("identifier", QsciLexerSQL::QuotedIdentifier);
-
-    ui->editLogApplication->setLexer(&sqlLexer);
-    ui->editLogUser->setLexer(&sqlLexer);
+    SqlTextEdit::sqlLexer->setTableNames(tblnames);
 
     // setup models for sqltextedit autocomplete
     objectMap tab = db.getBrowsableObjects();
@@ -585,7 +564,7 @@ void MainWindow::createTable()
         return;
     }
 
-    EditTableDialog dialog(&db, &sqlLexer, "", true, this);
+    EditTableDialog dialog(&db, "", true, this);
     if(dialog.exec())
     {
         populateStructure();
@@ -651,7 +630,7 @@ void MainWindow::editTable()
     }
     QString tableToEdit = ui->dbTreeWidget->model()->data(ui->dbTreeWidget->currentIndex().sibling(ui->dbTreeWidget->currentIndex().row(), 0)).toString();
 
-    EditTableDialog dialog(&db, &sqlLexer, tableToEdit, false, this);
+    EditTableDialog dialog(&db, tableToEdit, false, this);
     if(dialog.exec())
     {
         populateStructure();
@@ -1243,7 +1222,7 @@ unsigned int MainWindow::openSqlTab(bool resetCounter)
         tabNumber = 0;
 
     // Create new tab, add it to the tab widget and select it
-    SqlExecutionArea* w = new SqlExecutionArea(this, &db, &sqlLexer);
+    SqlExecutionArea* w = new SqlExecutionArea(this, &db);
     int index = ui->tabSqlAreas->addTab(w, QString("SQL %1").arg(++tabNumber));
     ui->tabSqlAreas->setCurrentIndex(index);
     w->getEditor()->setFocus();
@@ -2079,16 +2058,4 @@ void MainWindow::editEncryption()
         }
     }
 #endif
-}
-
-void MainWindow::setupSyntaxHighlightingFormat(const QString& settings_name, int style)
-{
-    sqlLexer.setColor(QColor(PreferencesDialog::getSettingsValue("syntaxhighlighter", settings_name + "_colour").toString()), style);
-
-    QFont font("Monospace");
-    font.setPointSize(PreferencesDialog::getSettingsValue("editor", "fontsize").toInt());
-    font.setBold(PreferencesDialog::getSettingsValue("syntaxhighlighter", settings_name + "_bold").toBool());
-    font.setItalic(PreferencesDialog::getSettingsValue("syntaxhighlighter", settings_name + "_italic").toBool());
-    font.setUnderline(PreferencesDialog::getSettingsValue("syntaxhighlighter", settings_name + "_underline").toBool());
-    sqlLexer.setFont(font, style);
 }

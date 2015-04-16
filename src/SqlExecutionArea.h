@@ -6,7 +6,6 @@
 #include <QWidget>
 
 class QsciScintilla;
-class SqlUiLexer;
 class SqliteTableModel;
 class DBBrowserDB;
 class QMenu;
@@ -21,7 +20,7 @@ class SqlExecutionArea : public QWidget
     Q_OBJECT
 
 public:
-    explicit SqlExecutionArea(QWidget* parent, DBBrowserDB* _db, SqlUiLexer* lexer);
+    explicit SqlExecutionArea(QWidget* parent, DBBrowserDB* _db);
     ~SqlExecutionArea();
 
     QString getSql() const;

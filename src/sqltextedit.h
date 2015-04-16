@@ -4,12 +4,10 @@
 #include "Qsci/qsciscintilla.h"
 
 class SqlUiLexer;
-class QsciLexer;
 
 /**
  * @brief The SqlTextEdit class
- * With basic table and fieldname auto completion.
- * This class is based on the Qt custom completion example.
+ * This class is based on the QScintilla widget
  */
 class SqlTextEdit : public QsciScintilla
 {
@@ -19,16 +17,16 @@ public:
     explicit SqlTextEdit(QWidget *parent = 0);
     virtual ~SqlTextEdit();
 
-    virtual void setLexer(QsciLexer* lexer);
+    static SqlUiLexer* sqlLexer;
 
 protected:
     void dropEvent(QDropEvent* e);
 
+private:
+    void setupSyntaxHighlightingFormat(const QString& settings_name, int style);
+
 private slots:
     void updateLineNumberAreaWidth();
-
-private:
-    SqlUiLexer* m_sqlLexer;
 };
 
 #endif

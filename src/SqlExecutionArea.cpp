@@ -6,13 +6,12 @@
 #include "sqlitedb.h"
 #include "PreferencesDialog.h"
 #include "ExportCsvDialog.h"
-#include "SqlUiLexer.h"
 
 #include <QMenu>
 #include <QInputDialog>
 #include <QMessageBox>
 
-SqlExecutionArea::SqlExecutionArea(QWidget* parent, DBBrowserDB* _db, SqlUiLexer* lexer) :
+SqlExecutionArea::SqlExecutionArea(QWidget* parent, DBBrowserDB* _db) :
     QWidget(parent),
     db(_db),
     ui(new Ui::SqlExecutionArea)
@@ -25,9 +24,6 @@ SqlExecutionArea::SqlExecutionArea(QWidget* parent, DBBrowserDB* _db, SqlUiLexer
     logfont.setStyleHint(QFont::TypeWriter);
     logfont.setPointSize(PreferencesDialog::getSettingsValue("log", "fontsize").toInt());
     ui->editErrors->setFont(logfont);
-
-    // Set up syntax highlighting
-    ui->editEditor->setLexer(lexer);
 
     // Create model
     model = new SqliteTableModel(this, db, PreferencesDialog::getSettingsValue("db", "prefetchsize").toInt());

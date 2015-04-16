@@ -3,17 +3,43 @@
 #include "SqlUiLexer.h"
 
 #include <QFile>
-#include <QKeyEvent>
-#include <QAbstractItemView>
-#include <QScrollBar>
-#include <QTextBlock>
+#include <QDropEvent>
 #include <QUrl>
 #include <QMimeData>
 #include <cmath>
 
+SqlUiLexer* SqlTextEdit::sqlLexer = 0;
+
 SqlTextEdit::SqlTextEdit(QWidget* parent) :
     QsciScintilla(parent)
 {
+    // Initialise lexer if not done yet
+    if(sqlLexer == 0)
+    {
+        // Create lexer object
+        sqlLexer = new SqlUiLexer(this);
+
+        // Set syntax highlighting settings
+        sqlLexer->setDefaultColor(Qt::black);
+        QFont defaultfont("Monospace");
+        defaultfont.setStyleHint(QFont::TypeWriter);
+        defaultfont.setPointSize(PreferencesDialog::getSettingsValue("editor", "fontsize").toInt());
+        sqlLexer->setDefaultFont(defaultfont);
+        setupSyntaxHighlightingFormat("comment", QsciLexerSQL::Comment);
+        setupSyntaxHighlightingFormat("comment", QsciLexerSQL::CommentLine);
+        setupSyntaxHighlightingFormat("comment", QsciLexerSQL::CommentDoc);
+        setupSyntaxHighlightingFormat("keyword", QsciLexerSQL::Keyword);
+        setupSyntaxHighlightingFormat("table", QsciLexerSQL::KeywordSet5);
+        setupSyntaxHighlightingFormat("function", QsciLexerSQL::KeywordSet6);
+        setupSyntaxHighlightingFormat("string", QsciLexerSQL::DoubleQuotedString);
+        setupSyntaxHighlightingFormat("string", QsciLexerSQL::SingleQuotedString);
+        setupSyntaxHighlightingFormat("identifier", QsciLexerSQL::Identifier);
+        setupSyntaxHighlightingFormat("identifier", QsciLexerSQL::QuotedIdentifier);
+    }
+
+    // Set the lexer
+    setLexer(sqlLexer);
+
     // Set font
     QFont font("Monospace");
     font.setStyleHint(QFont::TypeWriter);
@@ -60,10 +86,6 @@ SqlTextEdit::~SqlTextEdit()
 
 void SqlTextEdit::updateLineNumberAreaWidth()
 {
-    // Cancel now if no lexer has been set so far
-    if(lexer() == 0)
-        return;
-
     // Calculate number of digits of the current number of lines
     int digits = std::floor(std::log10(lines())) + 1;
 
@@ -71,15 +93,6 @@ void SqlTextEdit::updateLineNumberAreaWidth()
     // cause some flickering depending on the font) and set the new margin width.
     QFont font = lexer()->defaultFont(QsciLexerSQL::Default);
     setMarginWidth(0, QFontMetrics(font).width(QString("0").repeated(digits)) + 5);
-}
-
-void SqlTextEdit::setLexer(QsciLexer* lexer)
-{
-    // Call the parent implementation
-    QsciScintilla::setLexer(lexer);
-
-    // This is called in the constructor of the editor but as the lexer isn't set at that time it doesn't do anything
-    updateLineNumberAreaWidth();
 }
 
 void SqlTextEdit::dropEvent(QDropEvent* e)
@@ -96,4 +109,17 @@ void SqlTextEdit::dropEvent(QDropEvent* e)
     f.open(QIODevice::ReadOnly);
     setText(f.readAll());
     f.close();
+}
+
+
+void SqlTextEdit::setupSyntaxHighlightingFormat(const QString& settings_name, int style)
+{
+    sqlLexer->setColor(QColor(PreferencesDialog::getSettingsValue("syntaxhighlighter", settings_name + "_colour").toString()), style);
+
+    QFont font("Monospace");
+    font.setPointSize(PreferencesDialog::getSettingsValue("editor", "fontsize").toInt());
+    font.setBold(PreferencesDialog::getSettingsValue("syntaxhighlighter", settings_name + "_bold").toBool());
+    font.setItalic(PreferencesDialog::getSettingsValue("syntaxhighlighter", settings_name + "_italic").toBool());
+    font.setUnderline(PreferencesDialog::getSettingsValue("syntaxhighlighter", settings_name + "_underline").toBool());
+    sqlLexer->setFont(font, style);
 }
