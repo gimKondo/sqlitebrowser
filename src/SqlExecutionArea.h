@@ -5,7 +5,7 @@
 
 #include <QWidget>
 
-class QsciScintilla;
+class SqlTextEdit;
 class SqliteTableModel;
 class DBBrowserDB;
 class QMenu;
@@ -31,7 +31,7 @@ public:
 
     SqliteTableModel* getModel() { return model; }
     QTextEdit* getResultView();
-    QsciScintilla* getEditor();
+    SqlTextEdit* getEditor();
 
 public slots:
     virtual void finishExecution(const QString& result);

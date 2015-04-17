@@ -266,9 +266,13 @@ void MainWindow::populateStructure()
     if(!db.isOpen())
         return;
 
-    // Set up syntax highlighting
+    // Update table names for syntax highlighting
     QStringList tblnames = db.getBrowsableObjectNames();
     SqlTextEdit::sqlLexer->setTableNames(tblnames);
+    ui->editLogApplication->reloadKeywords();
+    ui->editLogUser->reloadKeywords();
+    for(int i=0;i<ui->tabSqlAreas->count();i++)
+        qobject_cast<SqlExecutionArea*>(ui->tabSqlAreas->widget(i))->getEditor()->reloadKeywords();
 
     // setup models for sqltextedit autocomplete
     objectMap tab = db.getBrowsableObjects();

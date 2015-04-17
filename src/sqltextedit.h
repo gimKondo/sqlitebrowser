@@ -19,6 +19,9 @@ public:
 
     static SqlUiLexer* sqlLexer;
 
+public slots:
+    void reloadKeywords();
+
 protected:
     void dropEvent(QDropEvent* e);
 

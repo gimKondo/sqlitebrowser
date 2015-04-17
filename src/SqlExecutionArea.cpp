@@ -64,7 +64,7 @@ void SqlExecutionArea::finishExecution(const QString& result)
     }
 }
 
-QsciScintilla* SqlExecutionArea::getEditor()
+SqlTextEdit *SqlExecutionArea::getEditor()
 {
     return ui->editEditor;
 }

@@ -29,8 +29,8 @@ SqlTextEdit::SqlTextEdit(QWidget* parent) :
         setupSyntaxHighlightingFormat("comment", QsciLexerSQL::CommentLine);
         setupSyntaxHighlightingFormat("comment", QsciLexerSQL::CommentDoc);
         setupSyntaxHighlightingFormat("keyword", QsciLexerSQL::Keyword);
-        setupSyntaxHighlightingFormat("table", QsciLexerSQL::KeywordSet5);
-        setupSyntaxHighlightingFormat("function", QsciLexerSQL::KeywordSet6);
+        setupSyntaxHighlightingFormat("table", QsciLexerSQL::KeywordSet6);
+        setupSyntaxHighlightingFormat("function", QsciLexerSQL::KeywordSet7);
         setupSyntaxHighlightingFormat("string", QsciLexerSQL::DoubleQuotedString);
         setupSyntaxHighlightingFormat("string", QsciLexerSQL::SingleQuotedString);
         setupSyntaxHighlightingFormat("identifier", QsciLexerSQL::Identifier);
@@ -122,4 +122,10 @@ void SqlTextEdit::setupSyntaxHighlightingFormat(const QString& settings_name, in
     font.setItalic(PreferencesDialog::getSettingsValue("syntaxhighlighter", settings_name + "_italic").toBool());
     font.setUnderline(PreferencesDialog::getSettingsValue("syntaxhighlighter", settings_name + "_underline").toBool());
     sqlLexer->setFont(font, style);
+}
+
+void SqlTextEdit::reloadKeywords()
+{
+    // Set lexer again to reload the updated keywords list
+    setLexer(lexer());
 }

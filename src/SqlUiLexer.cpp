@@ -121,6 +121,7 @@ void SqlUiLexer::setupAutoCompletion()
 
 void SqlUiLexer::setTableNames(QStringList tables)
 {
+    // Update list for auto completion
     autocompleteApi->clear();
     setupAutoCompletion();
     foreach(const QString& table, tables)
@@ -133,10 +134,21 @@ void SqlUiLexer::setTableNames(QStringList tables)
 
 const char* SqlUiLexer::keywords(int set) const
 {
-    if(set == QsciLexerSQL::KeywordSet5)
-        return listTables.join(" ").toUtf8();
-    else if(set == QsciLexerSQL::KeywordSet6)
-        return listFunctions.join(" ").toUtf8();
-    else
+    // Function and table names are generated automatically but need to be returned to the calling functions.
+    // In order to not have them deleted after this function ends they are stored as static variables. Because
+    // the functions list doesn't change after the first call it's initialised here whereas the tables list, which
+    // can change, is updated for each call
+    static std::string functions = listFunctions.join(" ").toUtf8().constData();
+    static std::string tables;
+
+    if(set == 6)            // This corresponds to the QsciLexerSQL::KeywordSet6 style in SqlTextEdit
+    {
+        tables = listTables.join(" ").toLower().toUtf8().constData();
+        return tables.c_str();
+    } else if(set == 7) {    // This corresponds to the QsciLexerSQL::KeywordSet7 style in SqlTextEdit
+        return functions.c_str();
+    } else {
+        // For all other keyword sets simply call the parent implementation
         return QsciLexerSQL::keywords(set);
+    }
 }
