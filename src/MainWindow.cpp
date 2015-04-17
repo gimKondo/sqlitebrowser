@@ -266,43 +266,28 @@ void MainWindow::populateStructure()
     if(!db.isOpen())
         return;
 
-    // Update table names for syntax highlighting
-    QStringList tblnames = db.getBrowsableObjectNames();
-    SqlTextEdit::sqlLexer->setTableNames(tblnames);
+    // Update table and column names for syntax highlighting
+    objectMap tab = db.getBrowsableObjects();
+    SqlUiLexer::TablesAndColumnsMap tablesToColumnsMap;
+    for(objectMap::ConstIterator it=tab.begin(); it!=tab.end(); ++it)
+    {
+        // If it is a table or a view add the fields
+        if((*it).gettype() == "table" || (*it).gettype() == "view")
+        {
+            QString objectname = it.value().getname();
+
+            for(int i=0; i < (*it).table.fields().size(); ++i)
+            {
+                QString fieldname = (*it).table.fields().at(i)->name();
+                tablesToColumnsMap[objectname].append(fieldname);
+            }
+        }
+    }
+    SqlTextEdit::sqlLexer->setTableNames(tablesToColumnsMap);
     ui->editLogApplication->reloadKeywords();
     ui->editLogUser->reloadKeywords();
     for(int i=0;i<ui->tabSqlAreas->count();i++)
         qobject_cast<SqlExecutionArea*>(ui->tabSqlAreas->widget(i))->getEditor()->reloadKeywords();
-
-    // setup models for sqltextedit autocomplete
-    objectMap tab = db.getBrowsableObjects();
-    int row = 0;
-    for(objectMap::ConstIterator it=tab.begin(); it!=tab.end(); ++it, ++row)
-    {
-        QString sName = it.value().getname();
-        QStandardItem* item = new QStandardItem(sName);
-        item->setIcon(QIcon(QString(":icons/%1").arg(it.value().gettype())));
-        //completerModelTables.setItem(row, 0, item);
-
-        // If it is a table add the field Nodes
-        if((*it).gettype() == "table" || (*it).gettype() == "view")
-        {
-            QStandardItemModel* tablefieldmodel = new QStandardItemModel();
-            tablefieldmodel->setRowCount((*it).table.fields().count());
-            tablefieldmodel->setColumnCount(1);
-
-            int fldrow = 0;
-            for(int i=0; i < (*it).table.fields().size(); ++i, ++fldrow)
-            {
-                QString fieldname = (*it).table.fields().at(i)->name();
-                QStandardItem* fldItem = new QStandardItem(fieldname);
-                fldItem->setIcon(QIcon(":/icons/field"));
-                tablefieldmodel->setItem(fldrow, 0, fldItem);
-            }
-            //completerModelsFields.insert(sName.toLower(), tablefieldmodel);
-        }
-
-    }
 
     // Resize SQL column to fit contents
     ui->dbTreeWidget->resizeColumnToContents(3);

@@ -119,17 +119,21 @@ void SqlUiLexer::setupAutoCompletion()
     }
 }
 
-void SqlUiLexer::setTableNames(QStringList tables)
+void SqlUiLexer::setTableNames(const TablesAndColumnsMap& tables)
 {
     // Update list for auto completion
     autocompleteApi->clear();
+    listTables.clear();
     setupAutoCompletion();
-    foreach(const QString& table, tables)
-        autocompleteApi->add(table + "?" + QString::number(SqlUiLexer::ApiCompleterIconIdTable));
-    autocompleteApi->prepare();
+    for(TablesAndColumnsMap::ConstIterator it=tables.constBegin();it!=tables.constEnd();++it)
+    {
+        foreach(const QString& field, it.value())
+            autocompleteApi->add(it.key() + "?" + QString::number(SqlUiLexer::ApiCompleterIconIdTable) + "." + field);
 
-    // Store the table name list in order to highlight them in a different colour
-    listTables = tables;
+        // Store the table name list in order to highlight them in a different colour
+        listTables.append(it.key());
+    }
+    autocompleteApi->prepare();
 }
 
 const char* SqlUiLexer::keywords(int set) const
@@ -151,4 +155,14 @@ const char* SqlUiLexer::keywords(int set) const
         // For all other keyword sets simply call the parent implementation
         return QsciLexerSQL::keywords(set);
     }
+}
+
+QStringList SqlUiLexer::autoCompletionWordSeparators() const
+{
+    // The only word seperator for auto completion in SQL is "." as in "tablename.columnname".
+    // Because this isn't implemented in the default QScintilla SQL lexer for some reason we add it here.
+
+    QStringList wl;
+    wl << ".";
+    return wl;
 }

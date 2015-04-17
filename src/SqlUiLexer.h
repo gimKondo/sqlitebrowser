@@ -3,6 +3,8 @@
 
 #include "Qsci/qscilexersql.h"
 
+#include <QMap>
+
 class QsciAPIs;
 
 class SqlUiLexer : public QsciLexerSQL
@@ -19,9 +21,12 @@ public:
         ApiCompleterIconIdTable,
     };
 
-    void setTableNames(QStringList tables);
+    typedef QMap<QString, QList<QString> > TablesAndColumnsMap;
+    void setTableNames(const TablesAndColumnsMap& tables);
 
-    const char* keywords(int set) const;
+    virtual const char* keywords(int set) const;
+
+    virtual QStringList autoCompletionWordSeparators() const;
 
 private:
     QsciAPIs* autocompleteApi;
