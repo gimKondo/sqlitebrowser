@@ -66,9 +66,10 @@ SqlTextEdit::SqlTextEdit(QWidget* parent) :
     setAutoCompletionSource(QsciScintilla::AcsAll);
 
     // Set icons for auto completion
-    registerImage(SqlUiLexer::ApiCompleterIconIdKeyword, QImage(":/icons/api_keyword"));
-    registerImage(SqlUiLexer::ApiCompleterIconIdFunction, QImage(":/icons/api_function"));
-    registerImage(SqlUiLexer::ApiCompleterIconIdTable, QImage(":/icons/api_table"));
+    registerImage(SqlUiLexer::ApiCompleterIconIdKeyword, QImage(":/icons/keyword"));
+    registerImage(SqlUiLexer::ApiCompleterIconIdFunction, QImage(":/icons/function"));
+    registerImage(SqlUiLexer::ApiCompleterIconIdTable, QImage(":/icons/table"));
+    registerImage(SqlUiLexer::ApiCompleterIconIdColumn, QImage(":/icons/field"));
 
     // Enable brace matching
     setBraceMatching(QsciScintilla::SloppyBraceMatch);

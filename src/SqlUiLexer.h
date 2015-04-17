@@ -19,6 +19,7 @@ public:
         ApiCompleterIconIdKeyword = 1,
         ApiCompleterIconIdFunction,
         ApiCompleterIconIdTable,
+        ApiCompleterIconIdColumn,
     };
 
     typedef QMap<QString, QList<QString> > TablesAndColumnsMap;

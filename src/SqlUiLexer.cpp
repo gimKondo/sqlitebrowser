@@ -128,7 +128,8 @@ void SqlUiLexer::setTableNames(const TablesAndColumnsMap& tables)
     for(TablesAndColumnsMap::ConstIterator it=tables.constBegin();it!=tables.constEnd();++it)
     {
         foreach(const QString& field, it.value())
-            autocompleteApi->add(it.key() + "?" + QString::number(SqlUiLexer::ApiCompleterIconIdTable) + "." + field);
+            autocompleteApi->add(it.key() + "?" + QString::number(SqlUiLexer::ApiCompleterIconIdTable) + "." +
+                                 field + "?" + QString::number(SqlUiLexer::ApiCompleterIconIdColumn));
 
         // Store the table name list in order to highlight them in a different colour
         listTables.append(it.key());
@@ -149,7 +150,7 @@ const char* SqlUiLexer::keywords(int set) const
     {
         tables = listTables.join(" ").toLower().toUtf8().constData();
         return tables.c_str();
-    } else if(set == 7) {    // This corresponds to the QsciLexerSQL::KeywordSet7 style in SqlTextEdit
+    } else if(set == 7) {   // This corresponds to the QsciLexerSQL::KeywordSet7 style in SqlTextEdit
         return functions.c_str();
     } else {
         // For all other keyword sets simply call the parent implementation
