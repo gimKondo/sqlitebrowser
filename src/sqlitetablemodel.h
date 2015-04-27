@@ -19,6 +19,7 @@ public:
     int columnCount(const QModelIndex &parent = QModelIndex()) const;
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
+    using QAbstractTableModel::setData;
     bool setData(const QModelIndex& index, bool isBlob, const QVariant& value, int role = Qt::EditRole);
     bool canFetchMore(const QModelIndex &parent = QModelIndex()) const;
     void fetchMore(const QModelIndex &parent = QModelIndex());
