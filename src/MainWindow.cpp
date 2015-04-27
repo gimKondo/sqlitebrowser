@@ -151,7 +151,7 @@ void MainWindow::init()
     connect(ui->dataTable->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(setRecordsetLabel()));
     connect(ui->dataTable->horizontalHeader(), SIGNAL(sectionResized(int,int,int)), this, SLOT(updateBrowseDataColumnWidth(int,int,int)));
     connect(editWin, SIGNAL(goingAway()), this, SLOT(editWinAway()));
-    connect(editWin, SIGNAL(updateRecordText(int, int, QByteArray)), this, SLOT(updateRecordText(int, int, QByteArray)));
+    connect(editWin, SIGNAL(updateRecordText(int, int, bool, QByteArray)), this, SLOT(updateRecordText(int, int, bool, QByteArray)));
     connect(ui->dbTreeWidget->selectionModel(), SIGNAL(currentChanged(QModelIndex,QModelIndex)), this, SLOT(changeTreeSelection()));
 
     // Load window settings
@@ -643,9 +643,9 @@ void MainWindow::helpAbout()
     dialog.exec();
 }
 
-void MainWindow::updateRecordText(int row, int col, const QByteArray& newtext)
+void MainWindow::updateRecordText(int row, int col, bool isBlob, const QByteArray& newtext)
 {
-    m_browseTableModel->setData(m_browseTableModel->index(row, col), newtext);
+    m_browseTableModel->setData(m_browseTableModel->index(row, col), isBlob, newtext);
 }
 
 void MainWindow::editWinAway()

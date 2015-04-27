@@ -38,7 +38,7 @@ private slots:
 
 signals:
     void goingAway();
-    void updateRecordText(int, int, const QByteArray&);
+    void updateRecordText(int row, int col, bool isBlob, const QByteArray& data);
 
 private:
     Ui::EditDialog* ui;
