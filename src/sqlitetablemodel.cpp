@@ -282,7 +282,7 @@ bool SqliteTableModel::setData(const QModelIndex& index, bool isBlob, const QVar
         if(oldValue == newValue && oldValue.isNull() == newValue.isNull())
             return true;
 
-        if(m_db->updateRecord(m_sTable, m_headers.at(index.column()), m_data[index.row()].at(0).toLongLong(), newValue, isBlob))
+        if(m_db->updateRecord(m_sTable, m_headers.at(index.column()), m_data[index.row()].at(0), newValue, isBlob))
         {
             // Only update the cache if this row has already been read, if not there's no need to do any changes to the cache
             if(index.row() < m_data.size())
