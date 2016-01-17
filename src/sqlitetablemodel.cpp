@@ -298,7 +298,7 @@ bool SqliteTableModel::setData(const QModelIndex& index, const QVariant& value, 
 {
     // This function is for in-place editing.
     // So, BLOB flag is false every times.
-    return setData(index, false, value, role);
+    return setTypedData(index, false, value, role);
 }
 
 bool SqliteTableModel::setTypedData(const QModelIndex& index, bool isBlob, const QVariant& value, int role)
