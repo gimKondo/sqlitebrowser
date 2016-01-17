@@ -294,7 +294,14 @@ sqlb::ForeignKeyClause SqliteTableModel::getForeignKeyClause(int column) const
         return sqlb::ForeignKeyClause();
 }
 
-bool SqliteTableModel::setData(const QModelIndex& index, bool isBlob, const QVariant& value, int role)
+bool SqliteTableModel::setData(const QModelIndex& index, const QVariant& value, int role)
+{
+    // This function is for in-place editing.
+    // So, BLOB flag is false every times.
+    return setData(index, false, value, role);
+}
+
+bool SqliteTableModel::setTypedData(const QModelIndex& index, bool isBlob, const QVariant& value, int role)
 {
     if(index.isValid() && role == Qt::EditRole)
     {

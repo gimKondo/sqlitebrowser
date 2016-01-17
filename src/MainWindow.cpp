@@ -748,7 +748,7 @@ void MainWindow::helpAbout()
 
 void MainWindow::updateRecordText(int row, int col, bool isBlob, const QByteArray& newtext)
 {
-    m_browseTableModel->setData(m_browseTableModel->index(row, col), isBlob, newtext);
+    m_browseTableModel->setTypedData(m_browseTableModel->index(row, col), isBlob, newtext);
 }
 
 void MainWindow::editWinAway()
