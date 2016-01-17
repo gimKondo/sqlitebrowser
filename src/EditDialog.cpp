@@ -165,7 +165,7 @@ void EditDialog::accept()
     if(hexEdit->data() != oldData || hexEdit->data().isNull() != oldData.isNull())
     {
         const QString dataType = ui->comboEditor->currentText();
-        bool isBlob = dataType == "Binary" || !ui->comboEditor->isVisible();
+        bool isBlob = dataType == tr("Binary") || !ui->comboEditor->isVisible();
         emit updateRecordText(curRow, curCol, isBlob, hexEdit->data());
     }
     emit goingAway();
