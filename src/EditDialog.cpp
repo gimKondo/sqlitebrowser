@@ -3,17 +3,19 @@
 #include "sqlitedb.h"
 #include "PreferencesDialog.h"
 #include "src/qhexedit.h"
+#include "FileDialog.h"
 
-#include <QFileDialog>
 #include <QKeySequence>
 #include <QShortcut>
 
-EditDialog::EditDialog(QWidget* parent)
+EditDialog::EditDialog(QWidget* parent, bool forUseInDockWidget)
     : QDialog(parent),
-      ui(new Ui::EditDialog)
+      ui(new Ui::EditDialog),
+      useInDock(forUseInDockWidget)
 {
     ui->setupUi(this);
     ui->buttonBox->button(QDialogButtonBox::Ok)->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Return));
+    ui->buttonBox->button(QDialogButtonBox::Cancel)->setVisible(!forUseInDockWidget);
 
     QHBoxLayout* hexLayout = new QHBoxLayout(ui->editorBinary);
     hexEdit = new QHexEdit(this);
@@ -49,17 +51,50 @@ void EditDialog::closeEvent(QCloseEvent*)
     emit goingAway();
 }
 
+void EditDialog::showEvent(QShowEvent*)
+{
+    // Whenever the dialog is shown, position it at the center of the parent dialog
+    QPoint center = mapToGlobal(rect().center());
+    QMainWindow* parentDialog = qobject_cast<QMainWindow*>(parent());
+    if(parentDialog)
+    {
+        QPoint parentCenter = parentDialog->window()->mapToGlobal(parentDialog->window()->rect().center());
+        move(parentCenter - center);
+    }
+}
+
+void EditDialog::reject()
+{
+    // This is called when pressing the cancel button or hitting the escape key
+
+    // If we're in dock mode, reset all fields and move the cursor back to the table view.
+    // If we're in window mode, call the default implementation to just close the window normally.
+    if(useInDock)
+    {
+        loadText(oldData, curRow, curCol);
+        emit goingAway();
+    } else {
+        QDialog::reject();
+    }
+}
+
 void EditDialog::loadText(const QByteArray& data, int row, int col)
 {
     curRow = row;
     curCol = col;
     oldData = data;
 
+    // Load data
     QString textData = QString::fromUtf8(data.constData(), data.size());
     ui->editorText->setPlainText(textData);
-    ui->editorText->setFocus();
-    ui->editorText->selectAll();
     hexEdit->setData(data);
+
+    // If we're in window mode (not in dock mode) focus the editor widget
+    if(!useInDock)
+    {
+        ui->editorText->setFocus();
+        ui->editorText->selectAll();
+    }
 
     // Assume it's binary data and only call checkDatyType afterwards. This means the correct input widget is selected here in all cases
     // but once the user changed it to text input it will stay there.
@@ -75,10 +110,9 @@ void EditDialog::importData()
     for(int i=0;i<image_formats_list.size();++i)
         image_formats.append(QString("*.%1 ").arg(QString::fromUtf8(image_formats_list.at(i))));
 
-    QString fileName = QFileDialog::getOpenFileName(
+    QString fileName = FileDialog::getOpenFileName(
                 this,
-                tr("Choose a file"),
-                PreferencesDialog::getSettingsValue("db", "defaultlocation").toString()
+                tr("Choose a file")
 #ifndef Q_OS_MAC // Filters on OS X are buggy
                 , tr("Text files(*.txt);;Image files(%1);;All files(*)").arg(image_formats)
 #endif
@@ -99,10 +133,9 @@ void EditDialog::importData()
 
 void EditDialog::exportData()
 {
-    QString fileName = QFileDialog::getSaveFileName(
+    QString fileName = FileDialog::getSaveFileName(
                 this,
                 tr("Choose a filename to export data"),
-                PreferencesDialog::getSettingsValue("db", "defaultlocation").toString(),
                 tr("Text files(*.txt);;All files(*)"));
 
     if(fileName.size() > 0)
@@ -142,7 +175,9 @@ void EditDialog::editTextChanged()
 {
     if(ui->editorText->hasFocus())
     {
+        hexEdit->blockSignals(true);
         hexEdit->setData(ui->editorText->toPlainText().toUtf8());
+        hexEdit->blockSignals(false);
         checkDataType();
     }
 }
@@ -150,7 +185,9 @@ void EditDialog::editTextChanged()
 void EditDialog::hexDataChanged()
 {
     // Update the text editor accordingly
+    ui->editorText->blockSignals(true);
     ui->editorText->setPlainText(QString::fromUtf8(hexEdit->data().constData(), hexEdit->data().size()));
+    ui->editorText->blockSignals(false);
 }
 
 void EditDialog::checkDataType()
@@ -205,4 +242,25 @@ void EditDialog::toggleOverwriteMode()
 
     hexEdit->setOverwriteMode(currentMode);
     ui->editorText->setOverwriteMode(currentMode);
+}
+
+void EditDialog::setFocus()
+{
+    QDialog::setFocus();
+
+    // When in dock mode set the focus to the editor widget. The idea here is that setting focus to the
+    // dock itself doesn't make much sense as it's just a frame; you'd have to tab to the editor which is what you
+    // most likely want to use. So in order to save the user from doing this we explicitly set the focus to the editor.
+    if(useInDock)
+    {
+        ui->editorText->setFocus();
+        ui->editorText->selectAll();
+    }
+}
+
+void EditDialog::allowEditing(bool on)
+{
+    ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(on);
+    ui->buttonClear->setEnabled(on);
+    ui->buttomImport->setEnabled(on);
 }

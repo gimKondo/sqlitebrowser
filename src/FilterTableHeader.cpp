@@ -1,43 +1,8 @@
 #include "FilterTableHeader.h"
+#include "FilterLineEdit.h"
 
-#include <QLineEdit>
 #include <QTableView>
 #include <QScrollBar>
-#include <QKeyEvent>
-#include <QDebug>
-
-class FilterLineEdit : public QLineEdit
-{
-public:
-    explicit FilterLineEdit(QWidget* parent, QList<FilterLineEdit*>* filters, int columnnum) : QLineEdit(parent), filterList(filters), columnNumber(columnnum)
-    {
-        setPlaceholderText(tr("Filter"));
-        setProperty("column", columnnum);            // Store the column number for later use
-    }
-
-protected:
-    void keyReleaseEvent(QKeyEvent* event)
-    {
-        if(event->key() == Qt::Key_Tab)
-        {
-            if(columnNumber < filterList->size() - 1)
-            {
-                filterList->at(columnNumber + 1)->setFocus();
-                event->accept();
-            }
-        } else if(event->key() == Qt::Key_Backtab) {
-            if(columnNumber > 0)
-            {
-                filterList->at(columnNumber - 1)->setFocus();
-                event->accept();
-            }
-        }
-    }
-
-private:
-    QList<FilterLineEdit*>* filterList;
-    int columnNumber;
-};
 
 FilterTableHeader::FilterTableHeader(QTableView* parent) :
     QHeaderView(Qt::Horizontal, parent)
@@ -55,28 +20,27 @@ FilterTableHeader::FilterTableHeader(QTableView* parent) :
     connect(this, SIGNAL(sectionResized(int,int,int)), this, SLOT(adjustPositions()));
     connect(parent->horizontalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(adjustPositions()));
     connect(parent->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(adjustPositions()));
+
+    // Set custom context menu handling
+    setContextMenuPolicy(Qt::CustomContextMenu);
 }
 
-void FilterTableHeader::generateFilters(int number, bool bKeepValues)
+void FilterTableHeader::generateFilters(int number, bool showFirst)
 {
     // Delete all the current filter widgets
-    QStringList oldvalues;
     for(int i=0;i < filterWidgets.size(); ++i)
-    {
-        if(bKeepValues)
-            oldvalues << filterWidgets.at(i)->text();
         delete filterWidgets.at(i);
-    }
     filterWidgets.clear();
 
     // And generate a bunch of new ones
     for(int i=0;i < number; ++i)
     {
         FilterLineEdit* l = new FilterLineEdit(this, &filterWidgets, i);
-        l->setVisible(i>0);                     // This hides the first input widget which belongs to the hidden rowid column
-        connect(l, SIGNAL(textChanged(QString)), this, SLOT(inputChanged(QString)));
-        if(bKeepValues && !oldvalues[i].isEmpty())  // restore old values
-            l->setText(oldvalues[i]);
+        if(!showFirst && i == 0)        // This hides the first input widget which belongs to the hidden rowid column
+            l->setVisible(false);
+        else
+            l->setVisible(true);
+        connect(l, SIGNAL(delayedTextChanged(QString)), this, SLOT(inputChanged(QString)));
         filterWidgets.push_back(l);
     }
 
@@ -111,7 +75,7 @@ void FilterTableHeader::adjustPositions()
     // Loop through all widgets
     for(int i=0;i < filterWidgets.size(); ++i)
     {
-        // Get the current widget, move it and reisize it
+        // Get the current widget, move it and resize it
         QWidget* w = filterWidgets.at(i);
         w->move(sectionPosition(i) - offset(), filterWidgets.at(i)->sizeHint().height() + 2);   // The two adds some extra space between the header label and the input widget
         w->resize(sectionSize(i), filterWidgets.at(i)->sizeHint().height());
@@ -122,4 +86,16 @@ void FilterTableHeader::inputChanged(const QString& new_value)
 {
     // Just get the column number and the new value and send them to anybody interested in filter changes
     emit filterChanged(sender()->property("column").toInt(), new_value);
+}
+
+void FilterTableHeader::clearFilters()
+{
+    foreach (FilterLineEdit* filterLineEdit, filterWidgets)
+        filterLineEdit->clear();
+}
+
+void FilterTableHeader::setFilter(int column, const QString& value)
+{
+    if(column < filterWidgets.size())
+        filterWidgets.at(column)->setText(value);
 }

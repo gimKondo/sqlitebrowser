@@ -7,7 +7,7 @@
 #include <QMultiMap>
 #include <QByteArray>
 
-class sqlite3;
+struct sqlite3;
 class CipherDialog;
 
 enum
@@ -43,16 +43,16 @@ class DBBrowserDB : public QObject
     Q_OBJECT
 
 public:
-    explicit DBBrowserDB () : _db( 0 ) {}
+    explicit DBBrowserDB () : _db(0), isEncrypted(false), isReadOnly(false) {}
     virtual ~DBBrowserDB (){}
     bool open ( const QString & db);
     bool attach(const QString& filename, QString attach_as = "");
     bool create ( const QString & db);
     bool close();
-    bool setRestorePoint(const QString& pointname = "RESTOREPOINT");
-    bool save (const QString& pointname = "RESTOREPOINT");
-    bool revert (const QString& pointname = "RESTOREPOINT");
-    bool saveAll();
+    bool setSavepoint(const QString& pointname = "RESTOREPOINT");
+    bool releaseSavepoint(const QString& pointname = "RESTOREPOINT");
+    bool revertToSavepoint(const QString& pointname = "RESTOREPOINT");
+    bool releaseAllSavepoints();
     bool revertAll();
     bool dump(const QString & filename, const QStringList &tablesToDump, bool insertColNames, bool insertNew, bool exportSchemaOnly);
     bool executeSQL ( const QString & statement, bool dirtyDB=true, bool logsql=true);
@@ -98,15 +98,15 @@ public:
      * @param name Name of the column to edit
      * @param to The new field definition with changed name, type or the like. If Null-Pointer is given the column is dropped.
      * @param move Set this to a value != 0 to move the new column to a different position
-     * @return true if renaming was successfull, false if not. In the latter case also lastErrorMessage is set
+     * @return true if renaming was successful, false if not. In the latter case also lastErrorMessage is set
      */
     bool renameColumn(const QString& tablename, const QString& name, sqlb::FieldPtr to, int move = 0);
 
-    QStringList getBrowsableObjectNames() const;
     objectMap getBrowsableObjects() const;
     DBBrowserObject getObjectByName(const QString& name) const;
     bool isOpen() const;
     bool encrypted() const { return isEncrypted; }
+    bool readOnly() const { return isReadOnly; }
     bool getDirty() const;
     void logSQL(QString statement, int msgtype);
 
@@ -132,6 +132,7 @@ private:
     QStringList savepointList;
 
     bool isEncrypted;
+    bool isReadOnly;
 
     bool tryEncryptionSettings(const QString& filename, bool* encrypted, CipherDialog*& cipherSettings);
 };

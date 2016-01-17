@@ -6,6 +6,7 @@
 #include <QHash>
 
 class QTreeWidgetItem;
+class QFrame;
 
 namespace Ui {
 class PreferencesDialog;
@@ -21,7 +22,7 @@ public:
 
     // Use these methods to access the application settings.
     static QVariant getSettingsValue(const QString& group, const QString& name);
-    static void setSettingsValue(const QString& group, const QString& name, const QVariant& value);
+    static void setSettingsValue(const QString& group, const QString& name, const QVariant& value, bool dont_save_to_disk = false);
 
 private slots:
     virtual void loadSettings();
@@ -42,6 +43,8 @@ private:
     static QHash<QString, QVariant> m_hCache;
 
     void fillLanguageBox();
+    void loadColorSetting(QFrame *frame, const QString &name);
+    void saveColorSetting(QFrame *frame, const QString &name);
 
 protected:
     bool eventFilter(QObject *obj, QEvent *event);

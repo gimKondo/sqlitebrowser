@@ -1,7 +1,10 @@
 project(sqlitebrowser)
 cmake_minimum_required(VERSION 2.8.7)
 
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" "${CMAKE_MODULE_PATH}")
+
 OPTION(USE_QT5 FALSE "Build with qt5")
+OPTION(ENABLE_TESTING FALSE "Enable the unit tests")
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release")
@@ -9,24 +12,30 @@ endif()
 
 if(WIN32 AND MSVC)
 	if(CMAKE_CL_64)
-		set(QT5_PATH "E:/Qt64/Qt5.4.1/5.4/msvc2013_64")
+		set(QT5_PATH "E:/Qt64/Qt5.5.1/5.5/msvc2013_64")
 		set(SQLITE3_PATH "E:/libs/sqlite3_x64")
 		set(OPENSSL_PATH "E:/libs/openssl-1.0.2a-x64_86-win64")
+		set(VSREDIST "vcredist_x64.exe")
 	else()
-		set(QT5_PATH "E:/Qt/Qt5.4.1/5.4/msvc2013")
+		set(QT5_PATH "E:/Qt/Qt5.5.1/5.5/msvc2013")
 		set(SQLITE3_PATH "E:/libs/sqlite3")
 		set(OPENSSL_PATH "E:/libs/openssl-1.0.2a-i386-win32")
+		set(VSREDIST "vcredist_x86.exe")
 	endif()
 	set(USE_QT5 TRUE)
 	set(CMAKE_PREFIX_PATH "${QT5_PATH};${SQLITE3_PATH}")
 endif()
 
-set(ANTLR_DIR libs/antlr-2.7.7)
+find_package(Antlr2)
+
 set(QHEXEDIT_DIR libs/qhexedit)
 set(QCUSTOMPLOT_DIR libs/qcustomplot-source)
 set(QSCINTILLA_DIR libs/qscintilla/Qt4Qt5)
 
-add_subdirectory(${ANTLR_DIR})
+if(NOT ANTLR2_FOUND)
+    set(ANTLR_DIR libs/antlr-2.7.7)
+    add_subdirectory(${ANTLR_DIR})
+endif()
 add_subdirectory(${QHEXEDIT_DIR})
 add_subdirectory(${QCUSTOMPLOT_DIR})
 add_subdirectory(${QSCINTILLA_DIR})
@@ -42,8 +51,12 @@ else()
     add_definitions(${QT_DEFINITIONS})
 endif()
 
+if(ENABLE_TESTING)
+    enable_testing()
+endif()
+
 set(SQLB_HDR
-	src/gen_version.h
+	src/version.h
 	src/sqlitetypes.h
 	src/csvparser.h
 	src/sqlite.h
@@ -73,6 +86,9 @@ set(SQLB_MOC_HDR
 	src/CipherDialog.h
 	src/ExportSqlDialog.h
 	src/SqlUiLexer.h
+	src/FileDialog.h
+	src/ColumnDisplayFormatDialog.h
+	src/FilterLineEdit.h
 )
 
 set(SQLB_SRC
@@ -101,6 +117,9 @@ set(SQLB_SRC
 	src/CipherDialog.cpp
 	src/ExportSqlDialog.cpp
 	src/SqlUiLexer.cpp
+	src/FileDialog.cpp
+	src/ColumnDisplayFormatDialog.cpp
+	src/FilterLineEdit.cpp
 )
 
 set(SQLB_FORMS
@@ -116,11 +135,13 @@ set(SQLB_FORMS
 	src/VacuumDialog.ui
 	src/CipherDialog.ui
 	src/ExportSqlDialog.ui
+	src/ColumnDisplayFormatDialog.ui
 )
 
 set(SQLB_RESOURCES
 	src/icons/icons.qrc
 	src/translations/flags/flags.qrc
+	src/translations/translations.qrc
 )
 
 set(SQLB_MISC
@@ -130,32 +151,36 @@ set(SQLB_MISC
 # Translation files
 set(SQLB_TSS
 	"${CMAKE_SOURCE_DIR}/src/translations/sqlb_zh.ts"
+	"${CMAKE_SOURCE_DIR}/src/translations/sqlb_zh_TW.ts"
 	"${CMAKE_SOURCE_DIR}/src/translations/sqlb_de.ts"
 	"${CMAKE_SOURCE_DIR}/src/translations/sqlb_fr.ts"
 	"${CMAKE_SOURCE_DIR}/src/translations/sqlb_ru.ts"
+	"${CMAKE_SOURCE_DIR}/src/translations/sqlb_pt_BR.ts"
+	"${CMAKE_SOURCE_DIR}/src/translations/sqlb_en_GB.ts"
+	"${CMAKE_SOURCE_DIR}/src/translations/sqlb_ko_KR.ts"
 )
 
 if(USE_QT5)
     qt5_wrap_ui(SQLB_FORM_HDR ${SQLB_FORMS})
-    qt5_add_resources(SQLB_RESOURCES_RCC ${SQLB_RESOURCES})
     if(SQLB_TSS)
         # add translations
         foreach(SQLB_TS ${SQLB_TSS})
-            SET_SOURCE_FILES_PROPERTIES("${SQLB_TS}" PROPERTIES OUTPUT_LOCATION "${CMAKE_BINARY_DIR}/translations")
+            SET_SOURCE_FILES_PROPERTIES("${SQLB_TS}" PROPERTIES OUTPUT_LOCATION "${CMAKE_SOURCE_DIR}/src/translations")
         endforeach(SQLB_TS ${SQLB_TSS})
         qt5_add_translation(SQLB_QMS ${SQLB_TSS})
     endif(SQLB_TSS)
+    qt5_add_resources(SQLB_RESOURCES_RCC ${SQLB_RESOURCES})
 else()
     QT4_WRAP_CPP(SQLB_MOC ${SQLB_MOC_HDR})
     QT4_WRAP_UI(SQLB_FORM_HDR ${SQLB_FORMS})
-    QT4_ADD_RESOURCES(SQLB_RESOURCES_RCC ${SQLB_RESOURCES})
     if(SQLB_TSS)
         # add translations
         foreach(SQLB_TS ${SQLB_TSS})
-            SET_SOURCE_FILES_PROPERTIES("${SQLB_TS}" PROPERTIES OUTPUT_LOCATION "${CMAKE_BINARY_DIR}/translations")
+            SET_SOURCE_FILES_PROPERTIES("${SQLB_TS}" PROPERTIES OUTPUT_LOCATION "${CMAKE_SOURCE_DIR}/src/translations")
         endforeach(SQLB_TS ${SQLB_TSS})
         QT4_ADD_TRANSLATION(SQLB_QMS ${SQLB_TSS})
     endif(SQLB_TSS)
+    QT4_ADD_RESOURCES(SQLB_RESOURCES_RCC ${SQLB_RESOURCES})
 endif()
 
 
@@ -171,7 +196,7 @@ if(WIN32)
 		set(SQLB_SRC ${SQLB_SRC} "${CMAKE_CURRENT_BINARY_DIR}/sqlbicon.o")
 		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-subsystem,windows")
 		set(WIN32_STATIC_LINK -Wl,-Bstatic -lssl -lcrypto -lws2_32)
-		set(ADDITIONAL_LIBS lcms lzma)
+		set(ADDITIONAL_LIBS lzma)
 	ELSE( MINGW )
 		set(SQLB_SRC ${SQLB_SRC} "${CMAKE_CURRENT_SOURCE_DIR}/src/winapp.rc")
 	ENDIF( MINGW )
@@ -207,12 +232,16 @@ endif()
 
 include_directories(
 		"${CMAKE_CURRENT_BINARY_DIR}"
-		${ANTLR_DIR}
 		${QHEXEDIT_DIR}
 		${QCUSTOMPLOT_DIR}
 		${QSCINTILLA_DIR}
 		${ADDITIONAL_INCLUDE_PATHS}
 		src)
+if(ANTLR2_FOUND)
+    include_directories(${ANTLR2_INCLUDE_DIRS})
+else()
+    include_directories(${ANTLR_DIR})
+endif()
 
 add_executable(${PROJECT_NAME}
 		${SQLB_HDR}
@@ -220,23 +249,27 @@ add_executable(${PROJECT_NAME}
 		${SQLB_FORM_HDR}
 		${SQLB_MOC}
 		${SQLB_RESOURCES_RCC}
-                ${SQLB_QMS}
-                ${SQLB_MISC})
+		${SQLB_MISC})
 
 if(USE_QT5)
     qt5_use_modules(${PROJECT_NAME} Gui Widgets Network Test PrintSupport)
     set(QT_LIBRARIES "")
 endif()
-add_dependencies(${PROJECT_NAME} antlr qhexedit qcustomplot qscintilla2)
+add_dependencies(${PROJECT_NAME} qhexedit qcustomplot qscintilla2)
+if(NOT ANTLR2_FOUND)
+    add_dependencies(${PROJECT_NAME} antlr)
+endif()
 
 link_directories(
 		"${CMAKE_CURRENT_BINARY_DIR}/${ANTLR_DIR}"
 		"${CMAKE_CURRENT_BINARY_DIR}/${QHEXEDIT_DIR}"
 		"${CMAKE_CURRENT_BINARY_DIR}/${QCUSTOMPLOT_DIR}"
 		"${CMAKE_CURRENT_BINARY_DIR}/${QSCINTILLA_DIR}")
+if(NOT ANTLR2_FOUND)
+    link_directories("${CMAKE_CURRENT_BINARY_DIR}/${ANTLR_DIR}")
+endif()
 
 target_link_libraries(${PROJECT_NAME}
-		antlr
 		qhexedit
 		qcustomplot
 		qscintilla2
@@ -244,6 +277,11 @@ target_link_libraries(${PROJECT_NAME}
 		${WIN32_STATIC_LINK}
 		${LIBSQLITE}
 		${ADDITIONAL_LIBS})
+if(ANTLR2_FOUND)
+    target_link_libraries(${PROJECT_NAME} ${ANTLR2_LIBRARIES})
+else()
+    target_link_libraries(${PROJECT_NAME} antlr)
+endif()
 
 if(WIN32 AND MSVC)
 	set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS_DEBUG "/SUBSYSTEM:CONSOLE")
@@ -252,12 +290,18 @@ if(WIN32 AND MSVC)
 	set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_DEFINITIONS_RELWITHDEBINFO "_CONSOLE")
 	set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS_RELEASE "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
 	set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS_MINSIZEREL "/SUBSYSTEM:WINDOWS")
+	set(CMAKE_GENERATOR_TOOLSET "v120_xp" CACHE STRING "Platform Toolset" FORCE)
 endif()
 
 install(TARGETS ${PROJECT_NAME}
 	RUNTIME DESTINATION bin
 	LIBRARY DESTINATION lib)
 	
+
+if(ENABLE_TESTING)
+	add_subdirectory(src/tests)
+endif()
+
 if(UNIX AND NOT APPLE)
 	install(FILES src/icons/${PROJECT_NAME}.png
 		DESTINATION share/icons/hicolor/256x256/apps/)
@@ -277,9 +321,9 @@ if(WIN32 AND MSVC)
 			${QT5_BIN_PATH}/Qt5Network.dll
 			${QT5_BIN_PATH}/Qt5PrintSupport.dll
 			${QT5_BIN_PATH}/Qt5Widgets.dll
-			${QT5_BIN_PATH}/icudt53.dll
-			${QT5_BIN_PATH}/icuin53.dll
-			${QT5_BIN_PATH}/icuuc53.dll
+			${QT5_BIN_PATH}/icudt54.dll
+			${QT5_BIN_PATH}/icuin54.dll
+			${QT5_BIN_PATH}/icuuc54.dll
 			${SQLITE3_DLL}
 			${OPENSSL_PATH}/libeay32.dll
 			${OPENSSL_PATH}/ssleay32.dll
@@ -287,6 +331,8 @@ if(WIN32 AND MSVC)
 	install(FILES
 		${QT5_PATH}/plugins/platforms/qwindows.dll
 		DESTINATION bin/platforms)
+
+	install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/deps/${VSREDIST} DESTINATION tmp)
 endif()
 
 #cpack
@@ -295,8 +341,8 @@ set(CPACK_PACKAGE_VENDOR "oldsch00l")
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 set(CPACK_PACKAGE_VERSION_MAJOR "3")
-set(CPACK_PACKAGE_VERSION_MINOR "5")
-set(CPACK_PACKAGE_VERSION_PATCH "99")
+set(CPACK_PACKAGE_VERSION_MINOR "8")
+set(CPACK_PACKAGE_VERSION_PATCH "0")
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "SqliteBrowser${CPACK_PACKAGE_VERSION_MAJOR}")
 if(WIN32 AND NOT UNIX)
 	# There is a bug in NSI that does not handle full unix paths properly. Make
@@ -308,7 +354,14 @@ if(WIN32 AND NOT UNIX)
 	set(CPACK_NSIS_URL_INFO_ABOUT "https:\\\\\\\\github.com\\\\sqlitebrowser\\\\sqlitebrowser")
 	set(CPACK_NSIS_CONTACT "peinthor@gmail.com")
 	set(CPACK_NSIS_MODIFY_PATH OFF)
+	set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
 	set(CPACK_NSIS_MUI_FINISHPAGE_RUN "sqlitebrowser.exe")
+
+	# VS redist
+	list(APPEND CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
+               ExecWait '$INSTDIR\\\\tmp\\\\${VSREDIST} /install /passive /quiet'
+               Delete '$INSTDIR\\\\tmp\\\\${VSREDIST}'
+               ")
 else(WIN32 AND NOT UNIX)
 	set(CPACK_STRIP_FILES "bin/sqlitebrowser")
 	set(CPACK_SOURCE_STRIP_FILES "")

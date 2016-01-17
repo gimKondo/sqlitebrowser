@@ -9,7 +9,8 @@
 #include <QApplication>
 
 DbStructureModel::DbStructureModel(QObject* parent)
-    : QAbstractItemModel(parent)
+    : QAbstractItemModel(parent),
+      m_db(0)
 {
     // Create root item and use its columns to store the header strings
     QStringList header;
@@ -37,7 +38,7 @@ QVariant DbStructureModel::data(const QModelIndex& index, int role) const
 
     // Depending on the role either return the text or the icon
     if(role == Qt::DisplayRole)
-        return PreferencesDialog::getSettingsValue("db", "hideschemalinebreaks").toBool() ? item->text(index.column()).replace("\n", " ") : item->text(index.column());
+        return PreferencesDialog::getSettingsValue("db", "hideschemalinebreaks").toBool() ? item->text(index.column()).replace("\n", " ").simplified() : item->text(index.column());
     else if(role == Qt::ToolTipRole)
         return item->text(index.column());  // Don't modify the text when it's supposed to be shown in a tooltip
     else if(role == Qt::DecorationRole)
@@ -217,7 +218,7 @@ QMimeData* DbStructureModel::mimeData(const QModelIndexList& indices) const
                 tableModel.setTable(data(index.sibling(index.row(), 0), Qt::DisplayRole).toString());
                 for(int i=0; i < tableModel.rowCount(); ++i)
                 {
-                    QString insertStatement = "INSERT INTO `" + data(index.sibling(index.row(), 0), Qt::DisplayRole).toString() + "` VALUES(";
+                    QString insertStatement = "INSERT INTO " + sqlb::escapeIdentifier(data(index.sibling(index.row(), 0), Qt::DisplayRole).toString()) + " VALUES(";
                     for(int j=1; j < tableModel.columnCount(); ++j)
                         insertStatement += QString("'%1',").arg(tableModel.data(tableModel.index(i, j)).toString());
                     insertStatement.chop(1);

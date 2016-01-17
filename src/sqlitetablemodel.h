@@ -6,12 +6,13 @@
 #include <QVector>
 
 class DBBrowserDB;
+namespace sqlb { class ForeignKeyClause; }
 
 class SqliteTableModel : public QAbstractTableModel
 {
     Q_OBJECT
 public:
-    explicit SqliteTableModel(QObject *parent = 0, DBBrowserDB* db = 0, size_t chunkSize = 50000);
+    explicit SqliteTableModel(QObject *parent = 0, DBBrowserDB* db = 0, size_t chunkSize = 50000, const QString& encoding = QString());
     void reset();
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
@@ -30,7 +31,7 @@ public:
 
     void setQuery(const QString& sQuery, bool dontClearHeaders = false);
     QString query() const { return m_sQuery; }
-    void setTable(const QString& table);
+    void setTable(const QString& table, const QVector<QString> &display_format = QVector<QString>());
     void setChunkSize(size_t chunksize);
     void sort(int column, Qt::SortOrder order = Qt::AscendingOrder);
 
@@ -40,12 +41,19 @@ public:
 
     bool isBinary(const QModelIndex& index) const;
 
+    void setEncoding(QString encoding) { m_encoding = encoding; }
+    QString encoding() const { return m_encoding; }
+
     typedef QList<QByteArray> QByteArrayList;
 
-signals:
-    
+    sqlb::ForeignKeyClause getForeignKeyClause(int column) const;
+
 public slots:
     void updateFilter(int column, const QString& value);
+
+protected:
+    virtual Qt::DropActions supportedDropActions() const;
+    virtual bool dropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column, const QModelIndex& parent);
 
 private:
     void fetchData(unsigned int from, unsigned to);
@@ -54,6 +62,9 @@ private:
     void buildQuery();
     QStringList getColumns(const QString& sQuery, QVector<int>& fieldsTypes);
     int getQueryRowCount();
+
+    QByteArray encode(const QByteArray& str) const;
+    QByteArray decode(const QByteArray& str) const;
 
     DBBrowserDB* m_db;
     int m_rowCount;
@@ -66,6 +77,7 @@ private:
     int m_iSortColumn;
     QString m_sSortOrder;
     QMap<int, QString> m_mWhere;
+    QVector<QString> m_vDisplayFormat;
     QVector<int> m_vDataTypes;
 
     /**
@@ -79,6 +91,8 @@ private:
     size_t m_chunkSize;
 
     bool m_valid; //! tells if the current query is valid.
+
+    QString m_encoding;
 };
 
 #endif // SQLITETABLEMODEL_H

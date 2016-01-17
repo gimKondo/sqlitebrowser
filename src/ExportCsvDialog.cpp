@@ -4,11 +4,11 @@
 #include "PreferencesDialog.h"
 #include "sqlitetablemodel.h"
 #include "sqlite.h"
+#include "FileDialog.h"
 
 #include <QFile>
 #include <QTextStream>
 #include <QMessageBox>
-#include <QFileDialog>
 #include <QSettings>
 
 ExportCsvDialog::ExportCsvDialog(DBBrowserDB* db, QWidget* parent, const QString& query, const QString& selection)
@@ -145,10 +145,9 @@ void ExportCsvDialog::accept()
     if(!m_sQuery.isEmpty())
     {
         // called from sqlexecute query tab
-        QString sFilename = QFileDialog::getSaveFileName(
+        QString sFilename = FileDialog::getSaveFileName(
                 this,
                 tr("Choose a filename to export data"),
-                PreferencesDialog::getSettingsValue("db", "defaultlocation").toString(),
                 tr("Text files(*.csv *.txt)"));
         if(sFilename.isEmpty())
         {
@@ -174,10 +173,9 @@ void ExportCsvDialog::accept()
         QStringList filenames;
         if(selectedItems.size() == 1)
         {
-            QString fileName = QFileDialog::getSaveFileName(
+            QString fileName = FileDialog::getSaveFileName(
                     this,
                     tr("Choose a filename to export data"),
-                    PreferencesDialog::getSettingsValue("db", "defaultlocation").toString(),
                     tr("Text files(*.csv *.txt)"));
             if(fileName.isEmpty())
             {
@@ -190,10 +188,9 @@ void ExportCsvDialog::accept()
         else
         {
             // ask for folder
-            QString csvfolder = QFileDialog::getExistingDirectory(
+            QString csvfolder = FileDialog::getExistingDirectory(
                         this,
                         tr("Choose a directory"),
-                        PreferencesDialog::getSettingsValue("db", "defaultlocation").toString(),
                         QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
             if(csvfolder.isEmpty())
@@ -213,7 +210,7 @@ void ExportCsvDialog::accept()
         {
             // if we are called from execute sql tab, query is already set
             // and we only export 1 select
-            QString sQuery = QString("SELECT * from `%1`;").arg(selectedItems.at(i)->text());
+            QString sQuery = QString("SELECT * FROM %1;").arg(sqlb::escapeIdentifier(selectedItems.at(i)->text()));
 
             exportQuery(sQuery, filenames.at(i));
         }

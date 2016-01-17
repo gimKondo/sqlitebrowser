@@ -10,6 +10,10 @@ else()
     add_definitions(${QT_DEFINITIONS})
 endif()
 
+if(APPLE AND USE_QT5)
+    find_package(Qt5MacExtras)
+endif()
+
 add_definitions(-DSCINTILLA_QT)
 add_definitions(-DSCI_LEXER)
 
@@ -75,27 +79,15 @@ set(QSCINTILLA_SRC
 )
 
 set(QSCINTILLA_HDR
-)
-
-set(QSCINTILLA_MOC_HDR
 	./Qsci/qsciglobal.h
-	./Qsci/qsciscintilla.h
-	./Qsci/qsciscintillabase.h
-	./Qsci/qsciabstractapis.h
-	./Qsci/qsciapis.h
 	./Qsci/qscicommand.h
 	./Qsci/qscicommandset.h
 	./Qsci/qscidocument.h
-	./Qsci/qscilexer.h
-	./Qsci/qscilexersql.h
-	./Qsci/qscimacro.h
 	./Qsci/qsciprinter.h
 	./Qsci/qscistyle.h
 	./Qsci/qscistyledtext.h
 	ListBoxQt.h
-	SciClasses.h
 	SciNamespace.h
-	ScintillaQt.h
 	../include/ILexer.h
 	../include/Platform.h
 	../include/SciLexer.h
@@ -145,6 +137,18 @@ set(QSCINTILLA_MOC_HDR
 	../src/XPM.h
 )
 
+set(QSCINTILLA_MOC_HDR
+	./Qsci/qsciscintilla.h
+	./Qsci/qsciscintillabase.h
+	./Qsci/qsciabstractapis.h
+	./Qsci/qsciapis.h
+	./Qsci/qscilexer.h
+	./Qsci/qscilexersql.h
+	./Qsci/qscimacro.h
+	SciClasses.h
+	ScintillaQt.h
+)
+
 if(NOT USE_QT5)
     QT4_WRAP_CPP(QSCINTILLA_MOC ${QSCINTILLA_MOC_HDR})
 endif()
@@ -154,5 +158,9 @@ include_directories(. ../include ../lexlib ../src)
 add_library(qscintilla2 ${QSCINTILLA_SRC} ${QSCINTILLA_HDR} ${QSCINTILLA_MOC_HDR} ${QSCINTILLA_MOC})
 
 if(USE_QT5)
-    qt5_use_modules(qscintilla2 Widgets PrintSupport)
+    if (APPLE)
+        qt5_use_modules(qscintilla2 Widgets PrintSupport MacExtras)
+    else()
+        qt5_use_modules(qscintilla2 Widgets PrintSupport)
+    endif()
 endif()

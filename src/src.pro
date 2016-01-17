@@ -42,7 +42,7 @@ HEADERS += \
     grammar/sqlite3TokenTypes.hpp \
     sqlitetablemodel.h \
     FilterTableHeader.h \
-    gen_version.h \
+    version.h \
     SqlExecutionArea.h \
     VacuumDialog.h \
     DbStructureModel.h \
@@ -50,7 +50,10 @@ HEADERS += \
     sqlite.h \
     CipherDialog.h \
     ExportSqlDialog.h \
-    SqlUiLexer.h
+    SqlUiLexer.h \
+    FileDialog.h \
+    ColumnDisplayFormatDialog.h \
+    FilterLineEdit.h
 
 SOURCES += \
     sqlitedb.cpp \
@@ -76,10 +79,14 @@ SOURCES += \
     Application.cpp \
     CipherDialog.cpp \
     ExportSqlDialog.cpp \
-    SqlUiLexer.cpp
+    SqlUiLexer.cpp \
+    FileDialog.cpp \
+    ColumnDisplayFormatDialog.cpp \
+    FilterLineEdit.cpp
 
 RESOURCES += icons/icons.qrc \
-             translations/flags/flags.qrc
+             translations/flags/flags.qrc \
+             translations/translations.qrc
 
 FORMS += \
     MainWindow.ui \
@@ -93,13 +100,18 @@ FORMS += \
     SqlExecutionArea.ui \
     VacuumDialog.ui \
     CipherDialog.ui \
-    ExportSqlDialog.ui
+    ExportSqlDialog.ui \
+    ColumnDisplayFormatDialog.ui
 
 TRANSLATIONS += \
     translations/sqlb_zh.ts \
+    translations/sqlb_zh_TW.ts \
     translations/sqlb_de.ts \
     translations/sqlb_fr.ts \
-    translations/sqlb_ru.ts
+    translations/sqlb_ru.ts \
+    translations/sqlb_pt_BR.ts \
+    translations/sqlb_en_GB.ts \
+    translations/sqlb_ko_KR.ts
 
 CONFIG(sqlcipher) {
 	QMAKE_CXXFLAGS += -DENABLE_SQLCIPHER
@@ -137,8 +149,9 @@ win32 {
 }
 mac {
     RC_FILE = macapp.icns
-    INCLUDEPATH += -I/usr/local/include \
-                   -I/usr/local/opt/sqlite/include
+    QT+= macextras
+    INCLUDEPATH += /usr/local/include \
+                   /usr/local/opt/sqlite/include
     LIBS += -L/usr/local/lib \
             -L/usr/local/opt/sqlite/lib \
             -framework Carbon
